@@ -1,0 +1,6 @@
+datalidator==1.0.3
+dnspython==2.2.1
+sidein==1.0.3
+sortedcontainers==2.4.0
+tomlkit==0.11.4
+tundra-xaxlib-python==1.0.2

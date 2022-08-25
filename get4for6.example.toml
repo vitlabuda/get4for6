@@ -1,0 +1,295 @@
+###################################################
+# ----- Get4For6 example configuration file ----- #
+###################################################
+
+
+
+
+
+[general]
+# Specifies from which facilities will debug messages be printed out to standard output. Leaving the list empty means
+#  no debug messages will be printed, and including the special wildcard string "*" in the list means all debug
+#  messages will be printed no matter from which facility they come from. See the file
+#  '/src/get4for6/logger/LogFacilities.py' for all the log facilities used by this program.
+print_debug_messages_from = []
+
+
+
+
+
+#######################################################################################################################
+[translation]
+# This program and its documentation use the term "clients" for IPv4-only nodes which make use of this translator to
+#  access resources available in IPv6-only Internet and/or other reachable networks.
+# Specifies to which IPv4 subnets this translator will provide its services. Requests originating from IPv4 addresses
+#  not within these subnets, as well as requests from these subnets' network or broadcast addresses, will be
+#  silently discarded. Specifying /32 (single host) or /31 subnets is supported, and the aforementioned
+#  network/broadcast address restriction does not apply to them. Client subnets may not overlap both with each other
+#  and substitute subnets.
+client_allowed_subnets = [
+    "192.168.0.0/24",
+]
+
+# Specifies the IPv6 prefix to which the translator will map clients' IPv4 addresses. The mappings are performed in a
+#  stateless, one-to-one manner - for example, the IPv4 address '192.168.0.1' will, in this case, be translated to
+#  '2001:db8:4444::c0a8:1' = '2001:db8:4444::192.168.0.1'. Although the prefix must be specified to be 96 bits in
+#  length (so the whole IPv4 address space can fit inside it), IPv4 addresses outside the above specified client
+#  subnets can never be mapped into it (in the case of this example configuration, only the '2001:db8:4444::c0a8:0/120'
+#  = '2001:db8:4444::192.168.0.0/120' prefix will be used). If you are worried about exposing private IPv4 addresses
+#  used in your network(s) to the outside world (via the mapped IPv6 addresses), you might consider using Linux's
+#  in-kernel NAT66 translator to MASQUERADE them.
+# In order for the translation to work, this IPv6 prefix must be routed to the TUN interface through which Tundra sends
+#  and receives packets.
+map_client_addrs_into = "2001:db8:4444::/96"
+
+
+
+# This program and its documentation use the term "substitute addresses" for IPv4 addresses to which IPv6 addresses
+#  of IPv6-only Internet hosts are mapped in a one-to-one manner, either statically or dynamically. Each
+#  client-originated IPv4 packet destined towards a substitute address will be translated into an IPv6 packet destined
+#  towards the IPv6 address substituted by the substitute address, and a client-destined IPv6 packet originating from
+#  an unicast IPv6 address will be translated into an IPv4 packet originating from the substitute address which
+#  substitutes the unicast IPv6 address.
+# Specifies from which IPv4 subnets the translator will assign substitute addresses for IPv6 addresses. Network and
+#  broadcast addresses of these subnets cannot be assigned (no matter if statically or dynamically). Specifying /32
+#  (single host) or /31 subnets is supported, and the aforementioned network/broadcast address restriction does not
+#  apply to them. Substitute subnets may not overlap both with each other and client subnets.
+# Since substitute address assignments are stored in the host machine's RAM, do not make the substitute subnets too
+#  large on machines with limited memory space. On the other hand, if your machine has enough memory and you want
+#  to make the substitute subnets large, performance should not get worse, as all operations on substitute mapping
+#  tables have O(1) or O(log n) time complexity.
+# In order for the translation to work, these IPv4 subnets must be routed to the TUN interface through which Tundra
+#  sends and receives packets.
+substitute_subnets = [
+    "100.100.0.0/22",
+]
+
+# Static substitute address assignments, which are shared among all clients, may be specified in this list. Each
+#  assignment takes the form of a two-item list, in which the first item is an assignable substitute IPv4 address, and
+#  the second item is a unicast IPv6 address, which will be substituted by the IPv4 address.
+# A substitute address or an IPv6 address may not be specified in this list more than once. If dynamic substitute
+#  address assigning is disabled (below), there must be at least one static assignment specified.
+static_substitute_addr_assignments = [
+    #["100.100.0.88", "2001:4860:4860::8888"],
+    #["100.100.0.53", "2001:4860:4860::8844"],
+]
+
+# Enables or disables dynamic creation of substitute mappings. Substitute IPv4 addresses are assigned sequentially from
+#  the above specified substitute subnets; network and broadcast addresses of subnets whose length is not /31 or /32,
+#  and addresses which have been assigned statically are not assigned dynamically. If all available addresses have been
+#  assigned and it is necessary to create a new assignment, the substitute mapping which has not been hit (i.e.
+#  accessed in any way) for the longest time will be replaced, provided that its minimum guaranteed lifetime, which is
+#  reset each time the mapping is hit, has elapsed.
+# Dynamic assignments are created and then managed on a per-client basis - each client has its own dynamic mapping pool,
+#  and clients are not able to affect each other's mappings. Clients are distinguished from each other by their IPv4
+#  addresses, meaning that all of this translator's services must be accessed from the same IP (e.g. DNS queries must
+#  have the same source IPv4 address as translated packets).
+# Dynamic assignments are created when:
+# - an IPv6 packet with an yet unmapped source address destined towards a client comes to the translator - somebody
+#   from the "outside IPv6 world" / IPv6 Internet is trying to communicate with a host in an IPv4 client network
+#   serviced by the translator
+# - a DNS query for an IPv6-only domain name or an IPv6-containing auxiliary name comes to the translator's DNS module
+# - a datagram containing an yet unmapped IPv6 address comes to the translator's 'simple_addr_query' module
+dynamic_substitute_addr_assigning.enabled = true
+
+# Specifies for how much time the translator will protect dynamic address mappings after they have been last hit, i.e
+#  accessed in any way (e.g. a packet with the dynamically assigned address has been translated, a DNS response
+#  containing the address has been sent to a client etc.). Dynamic mappings stay valid for as long as possible, and are
+#  not automatically discarded after a period of time - this option has an effect only if all substitute addresses have
+#  been assigned and a new mapping needs to be created. If there is no mapping in the pool whose protection has not
+#  expired (i.e. all mappings are protected), new mappings will not be created (which will cause packets to be
+#  dropped, DNS queries to be answered with SERVFAIL etc.)
+# Although it is possible to specify a zero or very short lifetime, it is STRONGLY DISCOURAGED, as the translator will
+#  behave extremely insecurely and, from clients' point of view, strangely and "randomly" once the dynamic address
+#  pool fills up. One needs to realize that if a substitute IPv4 address is not protected, it means that the IPv6
+#  address it substitutes can be replaced at any time -> any ongoing connection can be rerouted to another host at any
+#  time, meaning that the connection will be interrupted, applications can start to behave extremely strangely, and if
+#  that connection is unencrypted, private information can be disclosed to a third-party! Furthermore, zero or very
+#  short lifetimes inhibit Tundra's built-in caching (this lifetime value is used as a basis for computing the Tundra
+#  cache lifetime), making packet translation extremely slow!
+# A minimum sensible and relatively secure lifetime is 1 minute, although 3 minutes are recommended (it, however,
+#  strongly depends on the applications and protocols you are going to be using - connections on today's internet tend
+#  to be short-lived, or at least keep-alived periodically, but if that is not your case, you might want to consider
+#  specifying a longer lifetime).
+dynamic_substitute_addr_assigning.min_lifetime_after_last_hit = "3min"
+
+# Both static and dynamic assignments can be printed out to 'stdout' by sending the 'SIGUSR1' signal to this program.
+
+# SECURITY CONSIDERATIONS:
+# - Although this program's translation model does not break end-to-end connectivity and connections from the IPv6
+#   outside world to the served IPv4-only subnets are entirely possible, basically any IPv6 host could DoS this
+#   translator by filling up substitute address pools of all (!) of its clients. An attacker would only need to send
+#   packet to all IPv6-mapped client addresses from enough source addresses, each of which would get an substitiute IPv4
+#   address assigned by this translator (a standard IPv6 network has 2^64 addresses - way more than any substitute IPv4
+#   subnet could theoretically have). In addition, the IPv4 clients, which are likely to be on a private network hidden
+#   behind a NAT/firewall, get exposed to the Internet by this translator by default. For these reasons, it is
+#   RECOMMENDED to set up a stateful firewall (Linux's iptables, nftables, ...) blocking all inbound connections from
+#   the outside and allowing only outbound connections from the clients, if you believe you could be a victim of such
+#   attacks.
+# - The 'client_allowed_subnets' option's main objective is to protect this program, and not its clients (it is not a
+#   firewall replacement)! As has been described above, each client has its own, possibly very large, dynamic address
+#   pool, which could cause the program to crash due to its host machine not having enough memory. If there had been no
+#   such option to essentially vastly limit the number of clients, the surface of this type of DoS attack would have
+#   been much larger, and it could get very easily exploited, for example by the attack described in the previous
+#   security consideration.
+
+
+
+
+
+#######################################################################################################################
+[tundra_external_addr_xlat]
+# Get4For6 is not a packet translator, but rather only an address translator. Therefore, in order for the NAT46/DNS46
+#  translation to work as a whole, Tundra (https://github.com/vitlabuda/tundra-nat64) in the external address
+#  translation mode must be used. In this mode, Tundra, a fast C-written SIIT (RFC 7915) packet translator, translates
+#  IPv4 packets to IPv6 and vice versa, and asks an external server program (such as this one) for IP addresses to be
+#  put in the translated packets, optionally caching them to reduce the external server's load. This enables address
+#  translators (such as this one) to be complex and written in slower, higher-level programming languages.
+
+# These options specify on which Unix and/or TCP sockets Get4For6 will listen, and to which one or more Tundra
+#  instances (which may even run on remote machines) will connect, and then ask for addresses to be translated, and the
+#  maximum number of simultaneous connections to allow. Make sure that the sockets are protected against unauthorized
+#  access (this especially applies to non-localhost TCP sockets)!
+listen_on_unix = [
+    "/var/lib/tundra-nat64/external.sock",
+]
+listen_on_tcp = [  # [IP/hostname, port]
+    #["127.0.0.1", 6446],
+]
+max_simultaneous_connections = 36
+
+
+
+
+
+#######################################################################################################################
+[dns]
+# The main purpose of this translator's DNS module is to make it possible for DNS-enabled IPv4-only clients to access
+#  IPv6-only services without them needing to have any special software or configuration (the only requirement for
+#  clients is to have this translator set as their recursive DNS server, which can be automated using DHCP). DNS
+#  queries not originating from allowed client IPv4 addresses are silently discarded.
+# The DNS module's resolver operates as follows:
+# - When a query for an 'A' record, i.e. for an IPv4 address, is received from a client (through IPv4), it is forwarded
+#   to an upstream server. If the upstream's response contains such record (or the queried domain does not exist), it
+#   is forwarded back to the client as-is. Otherwise, the resolver queries an upstream for the same name, but now for
+#   an 'AAAA' record. If the response contains no such record (i.e. the domain has neither IPv4 nor IPv6 addresses),
+#   the original empty 'A' response is sent back to the client. Otherwise, the resolver will get a substitute IPv4
+#   address for the resolved IPv6 address, and send back a DNS response with it to the client. The client will then
+#   start sending IPv4 packets destined towards the substitute IPv4 address, which will afterwards be translated into
+#   IPv6 packets destined towards the DNS-resolved IPv6 address by this address translator.
+# - When a query for an 'PTR' record, i.e. an reverse DNS query, is received from a client:
+#   - If the reversely-resolved IP address is an substitute IPv4:
+#     - If 'auxiliary_names.use_for_rdns' is set to true, the returned PTR name will have the following format:
+#       "<substituted IPv6 address with its colons replaced by hyphens>.<auxiliary domain>".
+#     - Otherwise, a reverse DNS query is performed for the substituted IPv6 address, and its PTR name is sent back to
+#       the client.
+#   - Otherwise, the query is forwarded to an upstream server, and its response is relayed to the client as-is.
+# - If auxiliary names are enabled, and a query for an auxiliary name is received from a client (rdtype does not matter
+#   in this case), it is authoritatively resolved by this DNS resolver as described below.
+# - Otherwise, the query is forwarded to an upstream server, and its response is relayed to the client as-is.
+# Keep in mind that since some of these actions modify DNS responses, performing DNSSEC validation either directly by
+#  clients, or somewhere in between this translator and the clients WILL BREAK THINGS.
+
+# Enables or disables the DNS module.
+enabled = true
+
+
+
+# Specifies on which UDP and TCP endpoints the DNS server will listen.
+listen_on = [  # [IP/hostname, port]
+    ["0.0.0.0", 53],
+]
+
+# Specifies the maximum number of simultaneously resolved queries to allow.
+max_simultaneous_queries = 144
+
+# Specifies for how long at maximum the DNS server will wait for a DNS query to be received from a TCP client after
+#  a connection is established, and for a DNS response to be sent back to the TCP client. This option does not affect
+#  communication over UDP in any way.
+tcp_communication_with_client_timeout = "1s 250ms"
+
+
+
+# Specifies the recursive DNS servers this resolver will use to answer queries. The servers are queried in the order
+#  they are defined - the first valid response is returned, and the querying process thereby ends. If no upstream
+#  server is able to provide a valid response, a SERVFAIL is sent back to the client of this resolver on whose behalf
+#  the upstream query was performed.
+# This list may be left empty, in which case the DNS resolver will still be able to answer some queries, notably
+#  those for auxiliary names.
+upstream_servers = [
+    ["2606:4700:4700::1111", 53],
+    ["1.1.1.1", 53],
+    ["2606:4700:4700::1001", 53],
+    ["1.0.0.1", 53],
+]
+
+# Specifies for how long at maximum this DNS resolver will wait for a response from an upstream server before moving
+#  on to the next one.
+upstream_query_timeout = "2s 500ms"
+
+
+
+# In case the resolver is trying to resolve an 'A' query for an IPv6-only domain with multiple IPv6 addresses, it
+#  prefers the IPv6 addresses for which there already are substitute IPv4 address assignments, so the usually
+#  limited substitute IPv4 address space is not wasted. If it is not possible to acquire enough substitute IP addresses
+#  this way, the DNS server will start creating new assignments, and this option limits the number of these new
+#  assignments (it is yet another way of preventing unnecessary wasting of your substitute address space).
+# TL;DR - Leave this option set to 2, or set it to 1 if your substitute address space is very limited.
+max_newly_assigned_substitute_addrs_per_response = 2
+
+
+
+# The "auxiliary names" functionality has the following two practical purposes for DNS-enabled client nodes:
+# - It enables IPv4-only clients to access IPv6-only hosts whose domain name does not exist or is unknown, whereas
+#   their IPv6 address is known, by querying for an 'A' record (substitute IPv4 address) of a domain name in the
+#   following format:
+#   "<IPv6 address with its colons replaced by hyphens>.<auxiliary domain>", e.g. "2001-4860-4860--8888.get4for6.arpa."
+# - It enables IPv4-only clients to find out with which IPv6 address they are communicating using a substitute IPv4
+#   address by querying for an 'AAAA' record of a domain name in the following format:
+#   "<substitute IPv4 address with its dots replaced by hyphens>.r.<auxiliary domain>", e.g.
+#   "100-100-0-1.r.get4for6.arpa."
+# 'auxiliary_names.domain' must be fully qualified, i.e. it must end with a dot.
+# If 'auxiliary_names.use_for_rdns' is set to true, auxiliary names will be used as reverse DNS names (PTR records) of
+#  substitute IPv4 addresses, as described above.
+# Since this DNS resolver is acting as the authoritative server for the auxiliary domain's DNS zone, it, among other
+#  related things, is able to resolve the "ns.<auxiliary domain>" domain name, which should "theoretically" point to
+#  this DNS resolver. 'auxiliary_names.zone_ns_ips' allows you to set the IP addresses which the "ns" record will have.
+#  However, in almost all cases, is is absolutely unnecessary for the "ns" name to be resolvable, so if you do not
+#  know what this means or you are unsure, leave the list of IP addresses empty.
+#  TL;DR - Leave the 'auxiliary_names.zone_ns_ips' list empty.
+auxiliary_names.enabled = true
+auxiliary_names.domain = "get4for6.arpa."
+auxiliary_names.use_for_rdns = true
+auxiliary_names.zone_ns_ips = []
+
+
+
+
+
+#######################################################################################################################
+[simple_addr_query]
+# "simple_addr_query" is an extremely simple UDP-based protocol which functions as follows:
+# - If an UDP datagram containing an IPv6 address is received by this program, an UDP datagram containg a substitute
+#   IPv4 address for the IPv6 address is sent back.
+# - If an UDP datagram containing a valid substitute IPv4 address is received, an UDP datagram containing the
+#   IPv6 address substituted by the IPv4 address is sent back.
+# If an error occurrs, i.e. the received IP address is invalid, or the query has not been sent from an allowed client
+#  IPv4 address, nothing is sent back (the query is "blackholed").
+# This functionality may be used to ease debugging, or to make it possible for devices not supporting DNS (e.g.
+#  programmable microcontrollers with very limited system resources) to make use of this translator's services.
+
+# Enables or disables the "simple_addr_query" module.
+enabled = false
+
+# Specifies the UDP endpoints which will accept and send back IP addresses in binary/packed format, for example:
+#  "\xc0\xa8\x00\x01" (= "192.168.0.1") or
+#  "\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x34" (= "2001:db8::1234").
+#listen_on_binary = [
+#    ["0.0.0.0", 4444],
+#]
+
+# Specifies the UDP endpoints which will accept and send back IP addresses in standard plaintext format (leading
+#  and trailing whitespace characters are ignored), for example: "192.168.0.1" or "2001:db8::1234".
+#listen_on_plaintext = [
+#    ["0.0.0.0", 4445],
+#]

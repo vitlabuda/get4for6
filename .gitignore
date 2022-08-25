@@ -1,0 +1,6 @@
+.idea
+__pycache__
+__venv__
+/test_deploy
+/TODO-private.txt
+/get4for6.toml
