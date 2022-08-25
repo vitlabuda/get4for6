@@ -20,7 +20,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
 # Get4For6
-**Get4For6** is an open-source **NAT46 and DNS46** translator for Linux, implemented in the form of an
+**Get4For6** is an open-source user-space **NAT46 and DNS46** translator for Linux, implemented in the form of an
 [external address translator](https://github.com/vitlabuda/tundra-nat64/blob/main/external_addr_xlat/EXTERNAL-ADDR-XLAT-PROTOCOL.md)
 for the [Tundra](https://github.com/vitlabuda/tundra-nat64) SIIT (RFC 7915) packet translator.
 
