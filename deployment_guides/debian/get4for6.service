@@ -1,0 +1,20 @@
+[Unit]
+Description=Get4For6
+After=network.target
+
+[Service]
+Type=simple
+User=get4for6
+Group=get4for6
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+WorkingDirectory=/home/get4for6
+ExecStart=/bin/bash /home/get4for6/get4for6/src/run_get4for6.sh /usr/local/etc/get4for6/get4for6.toml
+ExecStop=/bin/kill -TERM $MAINPID
+
+[Install]
+WantedBy=multi-user.target

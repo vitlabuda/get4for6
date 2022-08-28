@@ -1,0 +1,65 @@
+[general]
+print_debug_messages_from = []
+
+
+
+[translation]
+client_allowed_subnets = [
+    "192.168.0.0/24",
+]
+map_client_addrs_into = "2001:db8:dead:beef:cafe:4444:0:0/96"
+
+substitute_subnets = [
+    "100.100.0.0/22",
+]
+static_substitute_addr_assignments = []
+
+dynamic_substitute_addr_assigning.enabled = true
+dynamic_substitute_addr_assigning.min_lifetime_after_last_hit = "3min"
+
+
+
+[tundra_external_addr_xlat]
+listen_on_unix = [
+    "/home/get4for6/tundra-external.sock",
+]
+listen_on_tcp = []
+max_simultaneous_connections = 48
+
+
+
+[dns]
+enabled = true
+
+listen_on = [
+    ["192.168.0.1", 53],
+]
+max_simultaneous_queries = 288
+tcp_communication_with_client_timeout = "1s 500ms"
+
+upstream_servers = [
+    ["2606:4700:4700::1111", 53],
+    ["1.1.1.1", 53],
+    ["2606:4700:4700::1001", 53],
+    ["1.0.0.1", 53],
+]
+upstream_query_timeout = "3s"
+
+max_newly_assigned_substitute_addrs_per_response = 2
+
+auxiliary_names.enabled = true
+auxiliary_names.domain = "get4for6.arpa."
+auxiliary_names.use_for_rdns = true
+auxiliary_names.zone_ns_ips = ["192.168.0.1"]
+
+
+
+[simple_addr_query]
+enabled = false
+
+#listen_on_binary = [
+#    ["192.168.0.1", 4444],
+#]
+#listen_on_plaintext = [
+#    ["192.168.0.1", 4445],
+#]
