@@ -16,6 +16,8 @@ iptables -A FORWARD -s 192.168.0.0/24 -d 100.100.0.0/22 -i lan0 -o get4for6 -j A
 #iptables -A FORWARD -s 100.100.0.0/22 -d 192.168.0.255/32 -i get4for6 -o lan0 -j DROP  # Drop packets destined towards the LAN's broadcast address
 #iptables -A FORWARD -s 100.100.0.0/22 -d 192.168.0.0/24 -i get4for6 -o lan0 -j ACCEPT  # Accept packets destined towards LAN hosts
 
+iptables -P FORWARD DROP
+
 iptables -t nat -A POSTROUTING -o wan0 -j MASQUERADE   # Masquerade addresses of IPv4 packets going to the WAN
 
 
@@ -32,3 +34,5 @@ ip6tables -A FORWARD -s 2001:db8:dead:beef:cafe:4444:c0a8:0/120 -i get4for6 -o w
 #ip6tables -A FORWARD -d 2001:db8:dead:beef:cafe:4444:c0a8:1/128 -i wan0 -o get4for6 -j DROP  # Drop packets destined towards the router
 #ip6tables -A FORWARD -d 2001:db8:dead:beef:cafe:4444:c0a8:ff/128 -i wan0 -o get4for6 -j DROP  # Drop packets destined towards the LAN's broadcast address
 #ip6tables -A FORWARD -d 2001:db8:dead:beef:cafe:4444:c0a8:0/120 -i wan0 -o get4for6 -j ACCEPT  # Accept packets destined towards LAN hosts
+
+ip6tables -P FORWARD DROP
