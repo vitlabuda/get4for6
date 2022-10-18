@@ -4,9 +4,6 @@ After=network.target
 
 [Service]
 Type=simple
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
 NoNewPrivileges=true
 WorkingDirectory=/home/get4for6
 ExecStart=/bin/bash /usr/local/etc/tundra-get4for6/start-tundra.sh
