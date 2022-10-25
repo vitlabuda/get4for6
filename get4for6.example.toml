@@ -107,11 +107,11 @@ dynamic_substitute_addr_assigning.enabled = true
 #  that connection is unencrypted, private information can be disclosed to a third-party! Furthermore, zero or very
 #  short lifetimes inhibit Tundra's built-in caching (this lifetime value is used as a basis for computing the Tundra
 #  cache lifetime), making packet translation extremely slow!
-# A minimum sensible and relatively secure lifetime is 1 minute, although 3 minutes are recommended (it, however,
+# A minimum sensible lifetime is 1 minute, although 4 minutes are recommended for reasonable security (it, however,
 #  strongly depends on the applications and protocols you are going to be using - connections on today's internet tend
 #  to be short-lived, or at least keep-alived periodically, but if that is not your case, you might want to consider
 #  specifying a longer lifetime).
-dynamic_substitute_addr_assigning.min_lifetime_after_last_hit = "3min"
+dynamic_substitute_addr_assigning.min_lifetime_after_last_hit = "4min"
 
 # Both static and dynamic assignments can be printed out to 'stdout' by sending the 'SIGUSR1' signal to this program.
 

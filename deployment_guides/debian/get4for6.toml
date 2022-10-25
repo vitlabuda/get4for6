@@ -15,7 +15,7 @@ substitute_subnets = [
 static_substitute_addr_assignments = []
 
 dynamic_substitute_addr_assigning.enabled = true
-dynamic_substitute_addr_assigning.min_lifetime_after_last_hit = "3min"
+dynamic_substitute_addr_assigning.min_lifetime_after_last_hit = "4min"
 
 
 
